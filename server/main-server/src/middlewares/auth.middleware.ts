@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
-import { User } from '@prisma/client';
+import User from '@prisma/client';
 
 interface VerifiedToken extends JwtPayload {
   userId: string;
@@ -11,7 +11,7 @@ interface VerifiedToken extends JwtPayload {
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: any;
 }
 
 export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

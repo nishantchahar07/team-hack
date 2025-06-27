@@ -1,7 +1,7 @@
 import Router, { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prisma } from '../lib/prisma';
-import { Gender } from '@prisma/client';
+import  Gender  from '@prisma/client';
 
 const router = Router();
 
