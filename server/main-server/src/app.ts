@@ -2,6 +2,8 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import logRoutes from './routes/log.routes';
+import nurseRoutes from './routes/nurse.routes';
 
 dotenv.config();
 const app: Application = express();
@@ -17,5 +19,7 @@ app.get('/', (req, res) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/logs", logRoutes);
+app.use("/api/v1/nurses", nurseRoutes);
 
 export default app;

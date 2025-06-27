@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  password       String
-  name           String
-  age            Int?
-  gender         Gender?
-  height         Float?
-  weight         Float?
-  phone          String?         @unique
-  verifyCode     String?
-  verified       Boolean         @default(false)
-  patientProfile PatientProfile?
-  bookings       Booking[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  SymptomLog     SymptomLog[]
+  id                String              @id @default(uuid())
+  email             String              @unique
+  password          String
+  name              String
+  age               Int?
+  gender            Gender?
+  height            Float?
+  weight            Float?
+  phone             String?             @unique
+  verifyCode        String?
+  verified          Boolean             @default(false)
+  patientProfile    PatientProfile?
+  bookings          Booking[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  SymptomLog        SymptomLog[]
+  ModelTrainingData ModelTrainingData[]
 }
 
 model Nurse {
@@ -39,6 +40,16 @@ model Nurse {
   bookings        Booking[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  Location        Location? @relation(fields: [locationId], references: [id])
+  locationId      String?
+}
+
+model Location {
+  id      String  @id @default(uuid())
+  lat     Float
+  lng     Float
+  address String
+  nurse   Nurse[]
 }
 
 model Booking {
@@ -99,6 +110,7 @@ model SymptomLog {
 model ModelTrainingData {
   id                String   @id @default(uuid())
   userId            String
+  user              User     @relation(fields: [userId], references: [id])
   nurseId           String
   disease           String
   durationMonths    Int
@@ -106,8 +118,13 @@ model ModelTrainingData {
   painLevel         Int
   priorDiagnosis    Boolean
   comorbidity       String?
-  preferredLanguage String
+  preferredLanguage Language
   createdAt         DateTime @default(now())
+}
+
+enum Language {
+  ENGLISH
+  HINDI
 }
 
 enum Gender {

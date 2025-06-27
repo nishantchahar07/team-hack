@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { generateVerificationCode } from '../utils/helper';
 import { sendVerificationEmail } from '../emails/verificationMail';
+import { AuthenticatedRequest, authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -138,6 +139,75 @@ router.post('/signin', asyncHandler(async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Login error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}));
+
+router.post('/profile', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user?.id;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const { name, phone, age, gender, height, weight } = req.body;
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(name && { name }),
+                ...(phone && { phone }),
+                ...(age && { age: parseInt(age) }),
+                ...(gender && { gender }),
+                ...(height && { height: parseFloat(height) }),
+                ...(weight && { weight: parseFloat(weight) })
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile retrieved successfully",
+        });
+    } catch (error) {
+        console.error("Profile retrieval error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}));
+
+router.get('/profile', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user?.id;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                phone: true,
+                age: true,
+                gender: true,
+                height: true,
+                weight: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile retrieved successfully",
+            user
+        });
+    } catch (error) {
+        console.error("Profile retrieval error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }));
