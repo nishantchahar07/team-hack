@@ -26,11 +26,11 @@ const GlobalStyles: React.FC = () => {
         display: inline-block;
         width: 90px;
         height: 36px;
-        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        background: linear-gradient(135deg, #4CAF50, #81C784);
         border-radius: 18px;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 3px 12px rgba(238, 90, 36, 0.3);
+        box-shadow: 0 3px 12px rgba(76, 175, 80, 0.3);
       }
       
       .toggle-slider::before {
@@ -47,8 +47,8 @@ const GlobalStyles: React.FC = () => {
       }
       
       .toggle-slider.active {
-        background: linear-gradient(135deg, #4CAF50, #81C784);
-        box-shadow: 0 3px 12px rgba(76, 175, 80, 0.3);
+        background: linear-gradient(135deg, #2E7D32, #4CAF50);
+        box-shadow: 0 3px 12px rgba(46, 125, 50, 0.4);
       }
       
       .toggle-slider.active::before {

@@ -1,5 +1,6 @@
 'use client'
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
     User,
     Calendar,
@@ -13,7 +14,6 @@ import {
     Stethoscope
 } from 'lucide-react';
 
-// Types
 interface FormData {
     name: string;
     age: string;
@@ -36,12 +36,6 @@ interface Step {
     active: boolean;
 }
 
-interface Notification {
-    id: number;
-    message: string;
-    type: 'success' | 'info' | 'warning';
-}
-
 interface NurseData {
     id: string;
     name: string;
@@ -60,6 +54,16 @@ interface NurseData {
     };
 }
 
+interface NursePrediction {
+    nurse_id: string;
+    probability: number;
+}
+
+interface NurseWithDistance extends NurseData {
+    distance?: number;
+    probability: number;
+}
+
 interface NavigationItem {
     label: string;
     icon: any;
@@ -71,11 +75,6 @@ const BOTTOM_NAVIGATION: NavigationItem[] = [
     { label: 'Consultation', icon: Stethoscope, color: '#2196F3' },
     { label: 'Appointment', icon: Calendar, color: '#4CAF50' },
     { label: 'Support', icon: MessageCircle, color: '#9C27B0' },
-];
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-    { id: 1, message: 'Your appointment request is being processed', type: 'info' },
-    { id: 2, message: 'Please complete all required fields', type: 'warning' },
 ];
 
 const AppointmentBooking: React.FC = () => {
@@ -94,10 +93,11 @@ const AppointmentBooking: React.FC = () => {
         date: '',
         time: '',
     });
-    const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
-    const [nurseData, setNurseData] = useState<NurseData | null>(null);
+    const [nurses, setNurses] = useState<NurseWithDistance[]>([]);
+    const [, setSelectedNurse] = useState<NurseWithDistance | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [showNurseProfile, setShowNurseProfile] = useState<boolean>(false);
+    const [userCoordinates, setUserCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
     const steps: Step[] = [
         { id: 1, title: 'Personal Info', icon: User, active: currentStep === 1 },
@@ -108,32 +108,115 @@ const AppointmentBooking: React.FC = () => {
         { id: 6, title: 'Choose Time', icon: Clock, active: currentStep === 6 },
     ];
 
-    const handleNext = useCallback(async (): Promise<void> => {
-        if (currentStep < 6) {
-            setCurrentStep(prev => prev + 1);
-        } else if (currentStep === 6) {
-            // Submit form data
-            await submitFormData();
-        }
-    }, [currentStep]);
-
-    const handlePrevious = useCallback((): void => {
-        if (currentStep > 1) {
-            setCurrentStep(prev => prev - 1);
-        }
-    }, [currentStep]);
-
-    const handleInputChange = useCallback((field: keyof FormData, value: string | number): void => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+    const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+        const R = 6371; // Radius of the Earth in kilometers
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distance in kilometers
     }, []);
 
-    const submitFormData = async (): Promise<void> => {
+    const getUserLocation = useCallback((): Promise<GeolocationPosition> => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by this browser.'));
+            } else {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const initializeLocation = async () => {
+            try {
+                const position = await getUserLocation();
+                setUserCoordinates({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                toast.info('Location access granted for distance calculation');
+            } catch (error) {
+                console.warn('Could not get user location:', error);
+                toast.warning('Location access denied. Distance calculation unavailable.');
+            }
+        };
+
+        initializeLocation();
+    }, [getUserLocation]);
+
+    const fetchNurseData = useCallback(async (nursePredictions: NursePrediction[]): Promise<void> => {
+        try {
+            const ids = nursePredictions.map(pred => pred.nurse_id);
+            console.log('Fetching data for nurse IDs:', ids);
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nurses/get-many`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ids }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch nurse data');
+            }
+
+            const data = await response.json();
+            const nursesData: NurseData[] = data.data;
+
+            const nursesWithProbability: NurseWithDistance[] = nursesData.map(nurse => {
+                const prediction = nursePredictions.find(pred => pred.nurse_id === nurse.id);
+                let distance: number | undefined;
+
+                if (userCoordinates && nurse.Location) {
+                    distance = calculateDistance(
+                        userCoordinates.lat,
+                        userCoordinates.lng,
+                        nurse.Location.lat,
+                        nurse.Location.lng
+                    );
+                }
+
+                return {
+                    ...nurse,
+                    probability: prediction?.probability || 0,
+                    distance
+                };
+            });
+
+            const sortedNurses = nursesWithProbability.sort((a, b) => {
+                if (a.probability !== b.probability) {
+                    return b.probability - a.probability;
+                }
+                if (a.distance !== undefined && b.distance !== undefined) {
+                    return a.distance - b.distance;
+                }
+                return 0;
+            });
+
+            setNurses(sortedNurses);
+            setSelectedNurse(sortedNurses[0] || null);
+            setShowNurseProfile(true);
+
+            toast.success(`Found ${sortedNurses.length} qualified nurses for you!`);
+
+        } catch (error) {
+            console.error('Error fetching nurse data:', error);
+            toast.error('Failed to fetch nurse information. Please try again.');
+        }
+    }, [userCoordinates, calculateDistance]);
+
+    const submitFormData = useCallback(async (): Promise<void> => {
         setLoading(true);
         try {
-            // Prepare payload for prediction endpoint
             const payload = {
                 disease: formData.disease,
                 duration_months: formData.duration_months,
@@ -143,7 +226,6 @@ const AppointmentBooking: React.FC = () => {
                 preferred_language: formData.preferred_language
             };
 
-            // Send data to prediction endpoint
             const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/predict`, {
                 method: 'POST',
                 headers: {
@@ -157,57 +239,43 @@ const AppointmentBooking: React.FC = () => {
             }
 
             const result = await response.json();
-            const id = result.prediction;
-            console.log('Prediction result:', result);
+            
+            const nursePredictions: NursePrediction[] = result.top_nurses;
 
-            if (id) {
-                await fetchNurseData(id);
+            if (nursePredictions && nursePredictions.length > 0) {
+                await fetchNurseData(nursePredictions);
             } else {
-                throw new Error('No valid ID returned from prediction');
+                throw new Error('No nurses found matching your criteria');
             }
 
         } catch (error) {
             console.error('Error submitting form:', error);
-            setNotifications(prev => [...prev, {
-                id: Date.now(),
-                message: 'Failed to process your request. Please try again.',
-                type: 'warning'
-            }]);
+            toast.error('Failed to process your request. Please try again.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [formData, fetchNurseData]);
 
-    const fetchNurseData = async (id: string): Promise<void> => {
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nurses/${id}`);
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch nurse data');
-            }
-
-            const data = await response.json();
-            setNurseData(data.data || data);
-            setShowNurseProfile(true);
-
-            setNotifications(prev => [...prev, {
-                id: Date.now(),
-                message: 'Great! We found the perfect nurse for you.',
-                type: 'success'
-            }]);
-
-        } catch (error) {
-            console.error('Error fetching nurse data:', error);
-            setNotifications(prev => [...prev, {
-                id: Date.now(),
-                message: 'Failed to fetch nurse information. Please try again.',
-                type: 'warning'
-            }]);
+    const handleNext = useCallback(async (): Promise<void> => {
+        if (currentStep < 6) {
+            setCurrentStep(prev => prev + 1);
+        } else if (currentStep === 6) {
+            // Submit form data
+            await submitFormData();
         }
-    };
+    }, [currentStep, submitFormData]);
 
-    const dismissNotification = useCallback((id: number): void => {
-        setNotifications(prev => prev.filter(notif => notif.id !== id));
+    const handlePrevious = useCallback((): void => {
+        if (currentStep > 1) {
+            setCurrentStep(prev => prev - 1);
+        }
+    }, [currentStep]);
+
+    const handleInputChange = useCallback((field: keyof FormData, value: string | number): void => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     }, []);
 
     const handleNavigationClick = useCallback((item: NavigationItem): void => {
@@ -298,11 +366,7 @@ const AppointmentBooking: React.FC = () => {
                                 <option value="">Select Language</option>
                                 <option value="English">English</option>
                                 <option value="Hindi">Hindi</option>
-                                <option value="Bengali">Bengali</option>
-                                <option value="Tamil">Tamil</option>
-                                <option value="Telugu">Telugu</option>
-                                <option value="Marathi">Marathi</option>
-                                <option value="Gujarati">Gujarati</option>
+
                             </select>
                         </div>
                     </div>
@@ -400,135 +464,166 @@ const AppointmentBooking: React.FC = () => {
         }
     };
 
-    if (showNurseProfile && nurseData) {
+    if (showNurseProfile && nurses.length > 0) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6 flex items-center justify-center">
-                <div className="max-w-2xl w-full">
-                    {/* Main Card */}
-                    <div className="bg-white rounded-3xl shadow-2xl overflow-hidden backdrop-blur-sm border border-gray-100">
-                        {/* Header Section */}
-                        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 p-8 text-white">
-                            <div className="absolute inset-0 bg-black opacity-10"></div>
-                            <div className="relative z-10">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
-                                            <User className="w-10 h-10 text-white" />
-                                        </div>
-                                        <div>
-                                            <h1 className="text-3xl font-bold mb-1">{nurseData.name}</h1>
-                                            <p className="text-blue-100 text-lg font-medium">{nurseData.specialization} Specialist</p>
-                                            <p className="text-blue-200 text-sm">{nurseData.experienceYears} years of experience</p>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+                <div className="max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                            Top Matching Nurses
+                        </h1>
+                        <p className="text-lg text-gray-600">
+                            Found {nurses.length} qualified nurses ranked by compatibility and distance
+                        </p>
+                    </div>
+
+                    {/* Nurses Grid */}
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {nurses.map((nurse, index) => (
+                            <div
+                                key={nurse.id}
+                                className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+                                onClick={() => setSelectedNurse(nurse)}
+                            >
+                                {/* Rank Badge */}
+                                <div className="relative">
+                                    <div className="absolute top-4 left-4 z-10">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                                            index === 0 ? 'bg-yellow-500' : 
+                                            index === 1 ? 'bg-gray-400' : 
+                                            index === 2 ? 'bg-amber-600' : 'bg-blue-500'
+                                        }`}>
+                                            {index + 1}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${nurseData.available
-                                                ? 'bg-green-500/20 text-green-100 border border-green-400/30'
-                                                : 'bg-red-500/20 text-red-100 border border-red-400/30'
+                                    
+                                    {/* Header Section */}
+                                    <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 p-6 text-white">
+                                        <div className="flex items-center space-x-3 mt-6">
+                                            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                                <User className="w-6 h-6 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold">{nurse.name}</h3>
+                                                <p className="text-blue-100">{nurse.specialization}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Availability */}
+                                        <div className="mt-4 flex justify-end">
+                                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                                nurse.available
+                                                    ? 'bg-green-500/20 text-green-100 border border-green-400/30'
+                                                    : 'bg-red-500/20 text-red-100 border border-red-400/30'
                                             }`}>
-                                            <div className={`w-2 h-2 rounded-full mr-2 ${nurseData.available ? 'bg-green-400' : 'bg-red-400'
+                                                <div className={`w-2 h-2 rounded-full mr-2 ${
+                                                    nurse.available ? 'bg-green-400' : 'bg-red-400'
                                                 }`}></div>
-                                            {nurseData.available ? 'Available' : 'Unavailable'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Content Section */}
-                        <div className="p-8">
-                            {/* Stats Row */}
-                            <div className="grid grid-cols-3 gap-6 mb-8">
-                                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
-                                    <Award className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                                    <div className="text-2xl font-bold text-blue-800">{nurseData.experienceYears}</div>
-                                    <div className="text-sm text-blue-600 font-medium">Years Experience</div>
-                                </div>
-                                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200">
-                                    <User className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                                    <div className="text-lg font-bold text-purple-800 capitalize">{nurseData.gender.toLowerCase()}</div>
-                                    <div className="text-sm text-purple-600 font-medium">Gender</div>
-                                </div>
-                                <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl border border-pink-200">
-                                    <div className="text-lg font-bold text-pink-800">{nurseData.language}</div>
-                                    <div className="text-sm text-pink-600 font-medium">Language</div>
-                                </div>
-                            </div>
-
-                            {/* Contact Information */}
-                            <div className="space-y-4 mb-8">
-                                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                                    <Clock className="w-5 h-5 mr-2 text-blue-600" />
-                                    Contact Information
-                                </h3>
-
-                                <div className="grid gap-4">
-                                    <div className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                        <Phone className="w-5 h-5 text-green-600 mr-4" />
-                                        <div>
-                                            <div className="font-medium text-gray-800">Phone</div>
-                                            <div className="text-gray-600">{nurseData.phone}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                        <Mail className="w-5 h-5 text-blue-600 mr-4" />
-                                        <div>
-                                            <div className="font-medium text-gray-800">Email</div>
-                                            <div className="text-gray-600">{nurseData.email}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                        <MapPin className="w-5 h-5 text-red-600 mr-4" />
-                                        <div>
-                                            <div className="font-medium text-gray-800">Location</div>
-                                            <div className="text-gray-600">{nurseData.Location.address}</div>
-                                            <div className="text-sm text-gray-500">
-                                                Coordinates: {nurseData.Location.lat}, {nurseData.Location.lng}
+                                                {nurse.available ? 'Available' : 'Unavailable'}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-4 mt-8">
-                                <button className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                                    Contact Nurse
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowNurseProfile(false);
-                                        setCurrentStep(1);
-                                        setFormData({
-                                            name: '',
-                                            age: '',
-                                            gender: '',
-                                            disease: '',
-                                            duration_months: 0,
-                                            symptoms: '',
-                                            pain_level: 0,
-                                            prior_diagnosis: '',
-                                            preferred_language: '',
-                                            location: '',
-                                            date: '',
-                                            time: '',
-                                        });
-                                    }}
-                                    className="flex-1 bg-white border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-medium hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
-                                >
-                                    Book Another
-                                </button>
+                                {/* Content */}
+                                <div className="p-6">
+                                    {/* Stats */}
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="text-center p-3 bg-blue-50 rounded-xl">
+                                            <div className="text-lg font-bold text-blue-800">{nurse.experienceYears}y</div>
+                                            <div className="text-xs text-blue-600">Experience</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-purple-50 rounded-xl">
+                                            <div className="text-lg font-bold text-purple-800 capitalize">{nurse.gender.toLowerCase()}</div>
+                                            <div className="text-xs text-purple-600">Gender</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-pink-50 rounded-xl">
+                                            <div className="text-lg font-bold text-pink-800">{nurse.language}</div>
+                                            <div className="text-xs text-pink-600">Language</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-green-50 rounded-xl">
+                                            <MapPin className="w-4 h-4 text-green-600 mx-auto mb-1" />
+                                            <div className="text-lg font-bold text-green-800">
+                                                {nurse.distance ? `${nurse.distance.toFixed(1)}km` : 'N/A'}
+                                            </div>
+                                            <div className="text-xs text-green-600">Distance</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Compatibility Score */}
+                                    <div className="mb-4">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-medium text-gray-600">Match Score</span>
+                                            <span className="text-sm font-bold text-gray-800">{(nurse.probability * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${nurse.probability * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact Info */}
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center text-gray-600">
+                                            <Phone className="w-4 h-4 mr-2" />
+                                            {nurse.phone}
+                                        </div>
+                                        <div className="flex items-center text-gray-600">
+                                            <Mail className="w-4 h-4 mr-2" />
+                                            {nurse.email}
+                                        </div>
+                                        <div className="flex items-center text-gray-600">
+                                            <MapPin className="w-4 h-4 mr-2" />
+                                            {nurse.Location.address}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedNurse(nurse);
+                                            toast.success(`Selected ${nurse.name} as your nurse!`);
+                                        }}
+                                        className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                                    >
+                                        Select This Nurse
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* Profile ID Footer */}
-                    <div className="mt-4 text-center">
-                        <p className="text-sm text-gray-500">
-                            Profile ID: <span className="font-mono text-gray-600">{nurseData.id}</span>
-                        </p>
+                    {/* Back Button */}
+                    <div className="text-center mt-8">
+                        <button
+                            onClick={() => {
+                                setShowNurseProfile(false);
+                                setNurses([]);
+                                setSelectedNurse(null);
+                                setCurrentStep(1);
+                                setFormData({
+                                    name: '',
+                                    age: '',
+                                    gender: '',
+                                    disease: '',
+                                    duration_months: 0,
+                                    symptoms: '',
+                                    pain_level: 0,
+                                    prior_diagnosis: '',
+                                    preferred_language: '',
+                                    location: '',
+                                    date: '',
+                                    time: '',
+                                });
+                            }}
+                            className="bg-white border-2 border-gray-300 text-gray-700 py-3 px-8 rounded-xl font-medium hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                        >
+                            Search Again
+                        </button>
                     </div>
                 </div>
             </div>
@@ -638,29 +733,6 @@ const AppointmentBooking: React.FC = () => {
                                 );
                             })}
                         </div>
-                    </div>
-
-                    {/* Notifications */}
-                    <div className="fixed top-20 right-4 space-y-3 z-50 hidden md:block">
-                        {notifications.map((notification) => (
-                            <div
-                                key={notification.id}
-                                className={`p-4 rounded-lg shadow-lg border-l-4 bg-white max-w-sm ${notification.type === 'success' ? 'border-green-500' :
-                                        notification.type === 'warning' ? 'border-yellow-500' :
-                                            'border-blue-500'
-                                    }`}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <p className="text-sm text-gray-700">{notification.message}</p>
-                                    <button
-                                        onClick={() => dismissNotification(notification.id)}
-                                        className="ml-2 text-gray-400 hover:text-gray-600"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </div>

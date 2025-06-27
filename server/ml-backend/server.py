@@ -80,6 +80,8 @@ def func():
                 for nurse_num, prob in top_n
             ]
 
+            print(f"Top nurses: {result}")
+
             return jsonify({
                 "message": "Prediction successful",
                 "top_nurses": result

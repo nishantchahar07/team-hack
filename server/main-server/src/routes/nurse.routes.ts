@@ -102,6 +102,41 @@ router.post('/create', asyncHandler(async (req: Request, res: Response) => {
     }
 }));
 
+router.post('/get-many', asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { ids } = req.body;
+
+        if (!Array.isArray(ids)) {
+            return res.status(400).json({
+                success: false,
+                message: "ids must be an array"
+            });
+        }
+
+        const nurses = await prisma.nurse.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            },
+            include: {
+                Location: true
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: nurses
+        });
+    } catch (error) {
+        console.error('Error fetching nurses:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}));
+
 router.get('/list', asyncHandler(async (req: Request, res: Response) => {
     try {
         const nurses = await prisma.nurse.findMany({
