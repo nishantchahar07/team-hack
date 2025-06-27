@@ -2,7 +2,7 @@ import Router from 'express';
 import { AuthenticatedRequest, authenticateToken } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prisma } from '../lib/prisma';
-import { ModelTrainingData } from '@prisma/client';
+import ModelTrainingData from '@prisma/client';
 
 const router = Router();
 
