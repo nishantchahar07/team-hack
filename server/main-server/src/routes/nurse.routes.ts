@@ -52,19 +52,19 @@ router.post('/create', asyncHandler(async (req: Request, res: Response) => {
         let locationId = null;
 
         const { lat, lng, address } = location;
-        
+
         if (!lat || !lng || !address) {
             return res.status(400).json({
-            success: false,
-            message: "Location must include lat, lng, and address"
+                success: false,
+                message: "Location must include lat, lng, and address"
             });
         }
 
         const createdLocation = await prisma.location.create({
             data: {
-            lat: parseFloat(lat),
-            lng: parseFloat(lng),
-            address: address
+                lat: parseFloat(lat),
+                lng: parseFloat(lng),
+                address: address
             }
         });
 
@@ -102,4 +102,55 @@ router.post('/create', asyncHandler(async (req: Request, res: Response) => {
     }
 }));
 
-export default router;
+router.get('/list', asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const nurses = await prisma.nurse.findMany({
+            include: {
+                Location: true
+            }
+        });
+        return res.status(200).json({
+            success: true,
+            data: nurses
+        });
+    } catch (error) {
+        console.error('Error fetching nurses:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}));
+
+router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const nurse = await prisma.nurse.findUnique({
+            where: { id },
+            include: {
+                Location: true
+            }
+        });
+
+        if (!nurse) {
+            return res.status(404).json({
+                success: false,
+                message: "Nurse not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: nurse
+        });
+    } catch (error) {
+        console.error('Error fetching nurse:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}));
+
+export default router

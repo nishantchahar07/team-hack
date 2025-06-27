@@ -6,6 +6,9 @@
     "dev": "tsc -b && node dist/index.js",
     "seed": "npx ts-node src/seed.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "keywords": [
     "healthcare"
   ],

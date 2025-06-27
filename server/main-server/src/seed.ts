@@ -1,0 +1,261 @@
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+async function main() {
+
+  // Create sample locations (uncomment if not already in DB)
+  const location1 = await prisma.location.create({
+    data: {
+      lat: 28.6139,
+      lng: 77.2090,
+      address: '123 Health Street, Delhi',
+    },
+  });
+
+  const location2 = await prisma.location.create({
+    data: {
+      lat: 19.0760,
+      lng: 72.8777,
+      address: '123 Health Street, Delhi',
+    },
+  });
+
+  await prisma.nurse.createMany({
+    data: [
+      {
+        id: '3f8a5c12-8f3e-44a1-bfdc-347c0d0c102d',
+        name: 'Nurse 1',
+        specialization: 'Pediatrics',
+        experienceYears: 2,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000001',
+        email: 'nurse1@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '8cf4b84d-9c01-4dd0-85e6-0d55cb1d9aa1',
+        name: 'Nurse 2',
+        specialization: 'Geriatrics',
+        experienceYears: 3,
+        language: 'HINDI',
+        gender: 'MALE',
+        phone: '8000000002',
+        email: 'nurse2@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '961c2a30-cc50-4a15-b92f-2b15f5c8b248',
+        name: 'Nurse 3',
+        specialization: 'Emergency Care',
+        experienceYears: 4,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000003',
+        email: 'nurse3@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '1e5c9c78-4d0c-4644-9220-2b49bc26c1d6',
+        name: 'Nurse 4',
+        specialization: 'Orthopedics',
+        experienceYears: 5,
+        language: 'ENGLISH',
+        gender: 'MALE',
+        phone: '8000000004',
+        email: 'nurse4@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: 'a77f9f5c-02b1-4c94-b248-4c0582741087',
+        name: 'Nurse 5',
+        specialization: 'Cardiology',
+        experienceYears: 6,
+        language: 'HINDI',
+        gender: 'FEMALE',
+        phone: '8000000005',
+        email: 'nurse5@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '7c8353a4-7ed3-4bc1-b0c0-779ea2a0e539',
+        name: 'Nurse 6',
+        specialization: 'Neurology',
+        experienceYears: 7,
+        language: 'ENGLISH',
+        gender: 'MALE',
+        phone: '8000000006',
+        email: 'nurse6@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: 'f6796d30-7f01-405c-b928-0c7c601f9ed5',
+        name: 'Nurse 7',
+        specialization: 'Pediatrics',
+        experienceYears: 3,
+        language: 'HINDI',
+        gender: 'FEMALE',
+        phone: '8000000007',
+        email: 'nurse7@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: 'a9e0c671-dab7-4a6f-9c8b-6c88a69aa96c',
+        name: 'Nurse 8',
+        specialization: 'Geriatrics',
+        experienceYears: 4,
+        language: 'ENGLISH',
+        gender: 'MALE',
+        phone: '8000000008',
+        email: 'nurse8@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '4f2e0f01-f7d3-44b3-9d57-b9a7d0f2682a',
+        name: 'Nurse 9',
+        specialization: 'Emergency Care',
+        experienceYears: 2,
+        language: 'HINDI',
+        gender: 'FEMALE',
+        phone: '8000000009',
+        email: 'nurse9@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '2ac905b4-5a17-4a8e-87ce-68800417b74d',
+        name: 'Nurse 10',
+        specialization: 'Orthopedics',
+        experienceYears: 6,
+        language: 'ENGLISH',
+        gender: 'MALE',
+        phone: '8000000010',
+        email: 'nurse10@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '64d76ab3-19c0-40f8-a0b5-11234260ac27',
+        name: 'Nurse 11',
+        specialization: 'Cardiology',
+        experienceYears: 3,
+        language: 'HINDI',
+        gender: 'FEMALE',
+        phone: '8000000011',
+        email: 'nurse11@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: 'b9efbd39-4a59-419a-816c-b68e66c4f3c7',
+        name: 'Nurse 12',
+        specialization: 'Neurology',
+        experienceYears: 5,
+        language: 'ENGLISH',
+        gender: 'MALE',
+        phone: '8000000012',
+        email: 'nurse12@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '23f64a9f-cfe6-40e3-8574-fd5a4ea3e40e',
+        name: 'Nurse 13',
+        specialization: 'Pediatrics',
+        experienceYears: 1,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000013',
+        email: 'nurse13@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: 'f344f4c6-91d6-4b40-8d68-3016714b9a8e',
+        name: 'Nurse 14',
+        specialization: 'Geriatrics',
+        experienceYears: 4,
+        language: 'HINDI',
+        gender: 'MALE',
+        phone: '8000000014',
+        email: 'nurse14@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: 'e7c0b1f1-19e5-468e-8f1e-bfcfe90d79a3',
+        name: 'Nurse 15',
+        specialization: 'Emergency Care',
+        experienceYears: 2,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000015',
+        email: 'nurse15@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: 'd265cafd-9141-441a-8794-2f5bdbb0e6ab',
+        name: 'Nurse 16',
+        specialization: 'Orthopedics',
+        experienceYears: 5,
+        language: 'HINDI',
+        gender: 'MALE',
+        phone: '8000000016',
+        email: 'nurse16@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '045b02c4-5dc7-4e13-9d07-96f08c3a80ed',
+        name: 'Nurse 17',
+        specialization: 'Cardiology',
+        experienceYears: 7,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000017',
+        email: 'nurse17@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '5a6c6c0b-68d5-439b-81fd-fb918eb4f38f',
+        name: 'Nurse 18',
+        specialization: 'Neurology',
+        experienceYears: 6,
+        language: 'HINDI',
+        gender: 'MALE',
+        phone: '8000000018',
+        email: 'nurse18@example.com',
+        locationId: location2.id,
+      },
+      {
+        id: '1c1d27b5-3d0c-4eb5-a0b5-0b998b7cbf3e',
+        name: 'Nurse 19',
+        specialization: 'Pediatrics',
+        experienceYears: 2,
+        language: 'ENGLISH',
+        gender: 'FEMALE',
+        phone: '8000000019',
+        email: 'nurse19@example.com',
+        locationId: location1.id,
+      },
+      {
+        id: '0cfb3122-6dc2-46a6-8b1a-2be57a823cb5',
+        name: 'Nurse 20',
+        specialization: 'Geriatrics',
+        experienceYears: 4,
+        language: 'HINDI',
+        gender: 'MALE',
+        phone: '8000000020',
+        email: 'nurse20@example.com',
+        locationId: location2.id,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log('20 Nurses seeded successfully!');
+}
+
+main()
+  .then(() => {
+    console.log('Seeding completed successfully!');
+  })
+  .catch((e) => {
+    console.error('Error during seeding:', e);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

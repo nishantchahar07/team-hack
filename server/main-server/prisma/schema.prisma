@@ -34,7 +34,7 @@ model Nurse {
   experienceYears Int
   language        String
   gender          Gender
-  phone           String    @unique
+  phone           String   
   email           String    @unique
   available       Boolean   @default(true)
   bookings        Booking[]

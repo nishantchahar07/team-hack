@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 import pickle
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 nurse_map = {
     1: "3f8a5c12-8f3e-44a1-bfdc-347c0d0c102d",
