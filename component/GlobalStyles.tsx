@@ -1,8 +1,10 @@
+'use client'
+
 import React from 'react';
 
 const GlobalStyles: React.FC = () => {
   return (
-    <style jsx>{`
+    <style jsx global>{`
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600&display=swap');
       
       .font-inter { font-family: 'Inter', sans-serif; }
