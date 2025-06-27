@@ -194,7 +194,6 @@ const HealthCarePro: React.FC = () => {
         }
       `}</style>
 
-      {/* Header */}
       <header className="glass-effect sticky top-0 z-50 shadow-lg">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -228,7 +227,7 @@ const HealthCarePro: React.FC = () => {
         </div>
       </header>
 
-      {/* Notifications */}
+    
       <div className="fixed top-28 right-8 z-40 space-y-4">
         {notifications.map((notification) => (
           <div key={notification.id} className="glass-effect rounded-2xl p-5 min-w-80 shadow-xl border-l-4 border-yellow-400 notification-enter">
@@ -244,9 +243,8 @@ const HealthCarePro: React.FC = () => {
         ))}
       </div>
 
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-16">
-        {/* Hero Section */}
+        
         <section className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-inter font-bold mb-6 bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent">
             Smart Healthcare at Your Fingertips
@@ -268,7 +266,6 @@ const HealthCarePro: React.FC = () => {
           </div>
         </section>
 
-        {/* Features Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <div className="glass-effect rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center text-white text-3xl mb-6">
@@ -301,7 +298,7 @@ const HealthCarePro: React.FC = () => {
           </div>
         </section>
 
-        {/* FAQ Section */}
+      
         <section className="mb-16">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-inter font-bold text-slate-800 mb-4">Frequently Asked Questions</h2>
@@ -329,7 +326,6 @@ const HealthCarePro: React.FC = () => {
         </section>
       </main>
 
-      {/* Emergency Overlay */}
       {isEmergencyActive && (
         <div className="fixed inset-0 bg-gradient-to-br from-red-600/95 to-red-500/95 backdrop-blur-md z-50 flex items-center justify-center text-white text-center emergency-overlay">
           <div className="max-w-2xl mx-auto p-8">
@@ -365,7 +361,6 @@ const HealthCarePro: React.FC = () => {
         </div>
       )}
 
-      {/* Footer */}
       <footer className="bg-gradient-to-r from-slate-800 to-slate-700 text-white mt-16">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -428,7 +423,6 @@ const HealthCarePro: React.FC = () => {
         </div>
       </footer>
 
-      {/* Font Awesome CDN */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     </div>
   );
