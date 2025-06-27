@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  password       String
+  name           String
+  age            Int?
+  gender         Gender?
+  height         Float?
+  weight         Float?
+  phone          String?         @unique
+  verifyCode     String?
+  verified       Boolean         @default(false)
+  patientProfile PatientProfile?
+  bookings       Booking[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  SymptomLog     SymptomLog[]
+}
+
+model Nurse {
+  id              String    @id @default(uuid())
+  name            String
+  specialization  String
+  experienceYears Int
+  language        String
+  gender          Gender
+  phone           String    @unique
+  email           String    @unique
+  available       Boolean   @default(true)
+  bookings        Booking[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  userId        String
+  nurseId       String
+  disease       String
+  scheduledDate DateTime
+  status        BookingStatus @default(PENDING)
+  reason        String?
+  nurseFeedback String?
+
+  user      User           @relation(fields: [userId], references: [id])
+  nurse     Nurse          @relation(fields: [nurseId], references: [id])
+  reports   HealthReport[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model HealthReport {
+  id            String   @id @default(uuid())
+  bookingId     String
+  visitDate     DateTime
+  notes         String
+  vitals        Json // { bp: "120/80", sugar: 95, pulse: 72 }
+  recoveryScore Int // nurse's judgement 1–10
+
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model PatientProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  medicalHistory     String[] // e.g., ["Diabetes", "Asthma"]
+  currentMedications String[] // e.g., ["Metformin"]
+  comorbidities      String[] // e.g., ["Heart Disease"]
+  allergies          String[] // e.g., ["Penicillin"]
+  preferredLanguage  String
+  priorDiagnosis     Boolean
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SymptomLog {
+  id          String   @id @default(uuid())
+  userId      String
+  logDate     DateTime @default(now())
+  symptoms    String[]
+  painLevel   Int
+  energyLevel Int? // optional
+  mood        String? // e.g., "Anxious", "Tired"
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ModelTrainingData {
+  id                String   @id @default(uuid())
+  userId            String
+  nurseId           String
+  disease           String
+  durationMonths    Int
+  symptoms          String[]
+  painLevel         Int
+  priorDiagnosis    Boolean
+  comorbidity       String?
+  preferredLanguage String
+  createdAt         DateTime @default(now())
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
