@@ -20,8 +20,8 @@ patient = {
     "lifestyle": "Sedentary job, occasional morning walks"
 }
 
-st.set_page_config(page_title="🚑 Emergency Assistant", page_icon="🚑")
-st.title("🚨 Emergency AI Assistant")
+st.set_page_config(page_title="Emergency Assistant")
+st.title("Emergency AI Assistant")
 
 with st.sidebar:
     st.header("🧾 Patient Summary")
@@ -39,7 +39,7 @@ with st.sidebar:
     **Lifestyle:** {patient['lifestyle']}  
     """)
 
-    language_pref = st.radio("🌐 Response Mode", ["Same as input", "Translate to Hindi", "🎙️ Voice to Voice (Speech)"])
+    language_pref = st.radio(" Response Mode", ["Same as input", "Translate to Hindi", " Voice to Voice (Speech)"])
 
 base_instruction = f"""
 You are an emergency AI assistant for a known patient. Respond quickly and only based on facts from the patient profile.
@@ -71,23 +71,20 @@ for msg in st.session_state.chat_history:
 model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", streaming=True)
 
 # Voice-to-voice mode
-if language_pref == "🎙️ Voice to Voice (Speech)":
+if language_pref == " Voice to Voice (Speech)":
     from streamlit_mic_recorder import mic_recorder
     import tempfile
     from gtts import gTTS
     import os
     import speech_recognition as sr
-    from pydub import AudioSegment  # ✅ Needed for format conversion
+    from pydub import AudioSegment  
 
-    audio = mic_recorder(start_prompt="🎤 Speak now", stop_prompt="Stop", key="voice_input")
+    audio = mic_recorder(start_prompt=" Speak now", stop_prompt="Stop", key="voice_input")
 
     if audio:
-        # Step 1: Save original audio (likely webm/mp3)
         raw_audio_path = tempfile.NamedTemporaryFile(delete=False, suffix=".webm")
         raw_audio_path.write(audio["bytes"])
         raw_audio_path.close()
-
-        # Step 2: Convert to PCM WAV
         wav_audio_path = raw_audio_path.name.replace(".webm", ".wav")
         try:
             sound = AudioSegment.from_file(raw_audio_path.name)
@@ -95,21 +92,18 @@ if language_pref == "🎙️ Voice to Voice (Speech)":
         except Exception as e:
             st.error("Audio conversion failed. Try again.")
             st.stop()
-
-        # Step 3: Transcribe with speech_recognition
         recognizer = sr.Recognizer()
         with sr.AudioFile(wav_audio_path) as source:
             audio_data = recognizer.record(source)
             try:
                 query = recognizer.recognize_google(audio_data, language="en-IN")
-                st.chat_message("user").markdown(f"🗣️ {query}")
+                st.chat_message("user").markdown(f" {query}")
                 st.session_state.chat_history.append(HumanMessage(content=query))
             except sr.UnknownValueError:
-                st.error("❌ Could not understand audio")
+                st.error("Could not understand audio")
             except sr.RequestError:
-                st.error("❌ Speech recognition service error")
+                st.error(" Speech recognition service error")
 
-        # Step 4: Get AI response (streamed)
         if "query" in locals():
             messages = [HumanMessage(content=base_instruction+"Answer should be in that language in which the audio is ")] + st.session_state.chat_history
             with st.chat_message("assistant"):
@@ -120,14 +114,11 @@ if language_pref == "🎙️ Voice to Voice (Speech)":
                 response_text = st.write_stream(stream_response)
                 st.session_state.chat_history.append(AIMessage(content=response_text))
 
-                # Step 5: Convert response to speech (TTS)
                 tts = gTTS(response_text, lang='en')
                 tts_path = "output.mp3"
                 tts.save(tts_path)
                 st.audio(tts_path, format="audio/mp3")
 
-
-# Text mode
 else:
     if language_pref == "Same as input":
         instruction_text = base_instruction + "\nAlways reply in the same language as the user’s input."
