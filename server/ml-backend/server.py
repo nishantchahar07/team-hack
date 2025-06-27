@@ -7,7 +7,6 @@ app = Flask(__name__)
 with open("model.pkl", "rb") as f:
     model = pickle.load(f)
 
-# Define expected feature columns
 columns = [
     'duration_months', 'pain_level', 'Arthritis', 'Asthma',
     'Diabetes', 'Hypertension', 'swelling', 'nausea', 'frequent urination',
