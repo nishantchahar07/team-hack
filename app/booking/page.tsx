@@ -95,7 +95,7 @@ const AppointmentBooking: React.FC = () => {
                             Book Your Appointment
                         </h1>
                         <p className="text-lg" style={{ color: '#2C3E50', fontFamily: 'Open Sans, sans-serif' }}>
-                            Let's get you the best care plan in just a few steps
+                            Let&apos;s get you the best care plan in just a few steps
                         </p>
                     </div>
 
@@ -111,7 +111,7 @@ const AppointmentBooking: React.FC = () => {
                                     <User size={20} />
                                 </div>
                                 <h2 className="text-xl font-semibold" style={{ color: '#2C3E50', fontFamily: 'Inter, sans-serif' }}>
-                                    Hi! Let's get you the best care plan. What's your name?
+                                    Hi! Let&apos;s get you the best care plan. What&apos;s your name?
                                 </h2>
                             </div>
 
