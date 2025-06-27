@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import pickle
+import numpy as np
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -29,7 +30,6 @@ nurse_map = {
     20: "0cfb3122-6dc2-46a6-8b1a-2be57a823cb5"
 }
 
-
 questions = [
     "1. What is your diagnosed disease or medical condition?",
     "2. How many months have you been experiencing this condition?",
@@ -39,6 +39,7 @@ questions = [
     "6. Do you have any other comorbidities or existing medical conditions?",
     "7. What is your preferred language for communication? (English/Hindi)"
 ]
+
 with open("model.pkl", "rb") as f:
     model = pickle.load(f)
 
@@ -52,23 +53,36 @@ columns = [
     'preferred_language_Hindi'
 ]
 
+def get_top_n_nurses(probabilities, n=3):
+    sorted_indices = np.argsort(probabilities)[::-1][:n]
+    return [(int(i+1), float(probabilities[i])) for i in sorted_indices]
+
 @app.route("/predict", methods=['POST'])
 def func():
     if request.is_json:
-        data = request.get_json() 
-
+        data = request.get_json()
         try:
             df = pd.DataFrame([data])
             for col in columns:
                 if col not in df.columns:
-                    df[col] = 0  
-            df = df[columns]  
+                    df[col] = 0
+            df = df[columns]
 
-            prediction = int(model.predict(df)[0])
+            prob_array = model.predict_proba(df)[0] 
+
+            top_n = get_top_n_nurses(prob_array, n=3)
+
+            result = [
+                {
+                    "nurse_id": nurse_map[nurse_num],
+                    "probability": round(prob, 4)
+                }
+                for nurse_num, prob in top_n
+            ]
 
             return jsonify({
                 "message": "Prediction successful",
-                "prediction": nurse_map[prediction]
+                "top_nurses": result
             })
         except Exception as e:
             return jsonify({
@@ -79,22 +93,21 @@ def func():
         return jsonify({
             "message": "Invalid request. JSON expected."
         }), 400
-@app.route("/chat",methods=['POST'])
+
+@app.route("/chat", methods=['POST'])
 def chat():
     try:
-        data=request.get_json()
-        id=data.get("id")
+        data = request.get_json()
+        id = data.get("id")
         return {
-        "status":201,
-        "data":questions[id]
-    }
+            "status": 201,
+            "data": questions[id]
+        }
     except:
         return {
-            "status":500,
-            "message":"Error Occured"
+            "status": 500,
+            "message": "Error Occurred"
         }
-
-    
 
 if __name__ == "__main__":
     app.run(debug=True)
