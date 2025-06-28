@@ -9,7 +9,7 @@ import {
   FeaturesSection,
   FAQSection,
   EmergencyOverlay,
-  // HealthCareFooter,
+
   GlobalStyles
 } from '@/component';
 import useAudioAlert from '@/hooks/useAudioAlert';
@@ -80,7 +80,7 @@ const HealthCarePro: React.FC = () => {
         onDeactivate={() => setIsEmergencyActive(false)} 
       />
 
-      {/* <HealthCareFooter /> */}
+   
 
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     </div>
