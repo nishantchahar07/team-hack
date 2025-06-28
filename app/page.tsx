@@ -20,22 +20,6 @@ const HealthCarePro: React.FC = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      toast.info('Take evening medicine', {
-        description: '6:00 PM - Don\'t forget your medication',
-        duration: 5000,
-      });
-    }, 2000);
-
-    setTimeout(() => {
-      toast.warning('Health Alert', {
-        description: 'Remember to check your blood pressure today',
-        duration: 4000,
-      });
-    }, 2000)
-  });
-
-  useEffect(() => {
-    setTimeout(() => {
       toast.success('Welcome to HealthCare Pro!', {
         description: 'Your comprehensive healthcare platform',
         duration: 3000,

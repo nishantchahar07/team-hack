@@ -10,8 +10,8 @@ const HeroSection: React.FC = () => {
         Smart Healthcare at Your Fingertips
       </h1>
       <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto">
-        Experience personalized care with AI-powered health plans, real-time nurse tracking,
-        and 24/7 emergency support
+        Connect with qualified nurses instantly, book appointments seamlessly,
+        and get personalized healthcare right at your doorstep
       </p>
 
       <div className="flex flex-col sm:flex-row gap-5 justify-center mb-16">

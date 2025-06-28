@@ -12,8 +12,12 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Timer
+  Timer,
+  Edit,
+  X,
+  CalendarX
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface BookingData {
   id: string;
@@ -46,6 +50,9 @@ const BookingHistory: React.FC = () => {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState<{ [key: string]: 'cancel' | 'reschedule' | null }>({});
+  const [showRescheduleModal, setShowRescheduleModal] = useState<string | null>(null);
+  const [newDate, setNewDate] = useState('');
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -119,6 +126,108 @@ const BookingHistory: React.FC = () => {
       default:
         return <Timer className="w-4 h-4" />;
     }
+  };
+
+  const cancelAppointment = async (bookingId: string) => {
+    setActionLoading(prev => ({ ...prev, [bookingId]: 'cancel' }));
+
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update the booking status locally
+        setBookings(prev => 
+          prev.map(booking => 
+            booking.id === bookingId 
+              ? { ...booking, status: 'CANCELLED' as const }
+              : booking
+          )
+        );
+        console.log('Appointment cancelled successfully');
+        toast.success('Appointment cancelled successfully');
+      } else {
+        setError(result.message || 'Failed to cancel appointment');
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      setError('Network error occurred while cancelling appointment');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [bookingId]: null }));
+    }
+  };
+
+  const rescheduleAppointment = async (bookingId: string, newScheduledDate: string) => {
+    setActionLoading(prev => ({ ...prev, [bookingId]: 'reschedule' }));
+
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/reschedule`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          bookingId, 
+          newScheduledDate 
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setBookings(prev => 
+          prev.map(booking => 
+            booking.id === bookingId 
+              ? { ...booking, scheduledDate: newScheduledDate }
+              : booking
+          )
+        );
+        setShowRescheduleModal(null);
+        setNewDate('');
+        console.log('Appointment rescheduled successfully');
+        toast.success('Appointment rescheduled successfully');
+      } else {
+        setError(result.message || 'Failed to reschedule appointment');
+      }
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      setError('Network error occurred while rescheduling appointment');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [bookingId]: null }));
+    }
+  };
+
+  const handleReschedule = (bookingId: string) => {
+    setShowRescheduleModal(bookingId);
+    setError(''); // Clear any existing errors
+  };
+
+  const handleCancelReschedule = () => {
+    setShowRescheduleModal(null);
+    setNewDate('');
+  };
+
+  const handleConfirmReschedule = () => {
+    if (showRescheduleModal && newDate) {
+      rescheduleAppointment(showRescheduleModal, newDate);
+    }
+  };
+
+  const canModifyBooking = (status: string) => {
+    return status === 'PENDING' || status === 'CONFIRMED';
   };
 
   return (
@@ -282,22 +391,107 @@ const BookingHistory: React.FC = () => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
-                      View Details
-                    </button>
-                    {booking.status === 'COMPLETED' && (
-                      <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-                        <Award className="w-4 h-4 inline mr-1" />
-                        Rate Visit
-                      </button>
+                  <div className="mt-4 space-y-2">
+                    {canModifyBooking(booking.status) && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleReschedule(booking.id)}
+                          disabled={actionLoading[booking.id] === 'reschedule'}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center space-x-1"
+                        >
+                          {actionLoading[booking.id] === 'reschedule' ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          ) : (
+                            <>
+                              <Edit className="w-4 h-4" />
+                              <span>Reschedule</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => cancelAppointment(booking.id)}
+                          disabled={actionLoading[booking.id] === 'cancel'}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center space-x-1"
+                        >
+                          {actionLoading[booking.id] === 'cancel' ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          ) : (
+                            <>
+                              <CalendarX className="w-4 h-4" />
+                              <span>Cancel</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     )}
+                    
+                    <div className="flex items-center justify-between">
+                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
+                        View Details
+                      </button>
+                      {booking.status === 'COMPLETED' && (
+                        <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
+                          <Award className="w-4 h-4 inline mr-1" />
+                          Rate Visit
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+            )        )}
+      </div>
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Reschedule Appointment</h3>
+              <button
+                onClick={handleCancelReschedule}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Appointment Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCancelReschedule}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReschedule}
+                disabled={!newDate || actionLoading[showRescheduleModal] === 'reschedule'}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
+                {actionLoading[showRescheduleModal] === 'reschedule' ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                ) : (
+                  'Confirm'
+                )}
+              </button>
+            </div>
           </div>
         </div>
+      )}
+    </div>
       )}
     </div>
   );

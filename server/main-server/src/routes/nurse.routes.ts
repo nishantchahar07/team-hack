@@ -1,7 +1,8 @@
 import Router, { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prisma } from '../lib/prisma';
-import  Gender  from '@prisma/client';
+import Gender from '@prisma/client';
+import { AuthenticatedRequest, authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -185,6 +186,86 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
             success: false,
             message: "Internal server error"
         });
+    }
+}));
+
+router.post("/reschedule", asyncHandler(authenticateToken), asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user?.id;
+        const { scheduleDate, bookingId } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        if (!scheduleDate || !bookingId) {
+            return res.status(400).json({ message: "scheduleDate and bookingId are required" });
+        }
+
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { nurse: true, user: true },
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        if (booking.userId !== userId && booking.nurseId !== userId) {
+            return res.status(403).json({ message: "You are not authorized to reschedule this booking" });
+        }
+
+        const newDate = new Date(scheduleDate);
+        if (isNaN(newDate.getTime())) {
+            return res.status(400).json({ message: "Invalid scheduleDate" });
+        }
+
+        const updatedBooking = await prisma.booking.update({
+            where: { id: bookingId },
+            data: { scheduledDate: newDate },
+        });
+
+        return res.status(200).json({ message: "Booking rescheduled successfully", data: updatedBooking });
+    } catch (error) {
+        console.error('Error rescheduling booking:', error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}));
+
+router.get("/cancel", asyncHandler(authenticateToken), asyncHandler(async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthenticatedRequest).user?.id;
+        const { bookingId } = req.query;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        if (!bookingId || typeof bookingId !== "string") {
+            return res.status(400).json({ message: "bookingId is required as a query parameter" });
+        }
+
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+        if (booking.userId !== userId && booking.nurseId !== userId) {
+            return res.status(403).json({ message: "You are not authorized to cancel this booking" });
+        }
+
+        const cancelledBooking = await prisma.booking.update({
+            where: { id: bookingId },
+            data: { status: 'CANCELLED' },
+        });
+
+        return res.status(200).json({
+            message: "Booking cancelled successfully",
+            data: cancelledBooking,
+        });
+    } catch (error) {
+        console.error('Error cancelling booking:', error);
+        return res.status(500).json({ message: "Internal server error" });
     }
 }));
 

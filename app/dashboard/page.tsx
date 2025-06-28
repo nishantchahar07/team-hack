@@ -332,7 +332,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
+                
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="w-4 h-4" />
@@ -342,11 +342,18 @@ const Dashboard: React.FC = () => {
                     <div className="flex space-x-2">
                       <button className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors flex items-center space-x-1">
                         <Download className="w-4 h-4" />
-                        <span>Download</span>
+                        <span onClick={() => {
+                          const jsonString = JSON.stringify(report.structuredData, null, 2);
+                          const blob = new Blob([jsonString], { type: 'application/json' });
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `medical-report-${report.id}.json`;
+                          link.click();
+                          window.URL.revokeObjectURL(url);
+                        }}>Download Report</span>
                       </button>
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        View Details
-                      </button>
+                     
                     </div>
                   </div>
                 </div>
