@@ -1,43 +1,48 @@
 'use client'
 
-import { Notification } from '@/types/notification';
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
-  Header,
-  NotificationPanel,
   HeroSection,
   FeaturesSection,
   FAQSection,
   EmergencyOverlay,
-
   GlobalStyles
 } from '@/component';
-import useAudioAlert from '@/hooks/useAudioAlert';
 
 const HealthCarePro: React.FC = () => {
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: 1, title: 'Take evening medicine', time: '6:00 PM' },
-    { id: 2, title: 'Tele check-up scheduled', time: 'Tomorrow 10 AM' }
-  ]);
-
-  const { playEmergencyAlert } = useAudioAlert();
-
-  const toggleEmergency = () => {
-    setIsEmergencyActive(!isEmergencyActive);
-    if (!isEmergencyActive) {
-      playEmergencyAlert();
-    }
-  };
 
   const toggleFAQ = (index: number) => {
     setActiveFAQ(activeFAQ === index ? null : index);
   };
 
-  const closeNotification = (id: number) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-  };
+  useEffect(() => {
+    setTimeout(() => {
+      toast.info('Take evening medicine', {
+        description: '6:00 PM - Don\'t forget your medication',
+        duration: 5000,
+      });
+    }, 2000);
+
+    setTimeout(() => {
+      toast.warning('Health Alert', {
+        description: 'Remember to check your blood pressure today',
+        duration: 4000,
+      });
+    }, 2000)
+  });
+
+  useEffect(() => {
+    setTimeout(() => {
+      toast.success('Welcome to HealthCare Pro!', {
+        description: 'Your comprehensive healthcare platform',
+        duration: 3000,
+      });
+    }, 1000);
+
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,28 +64,16 @@ const HealthCarePro: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 text-slate-800">
       <GlobalStyles />
 
-      <Header 
-        isEmergencyActive={isEmergencyActive} 
-        toggleEmergency={toggleEmergency} 
-      />
-
-      <NotificationPanel 
-        notifications={notifications} 
-        closeNotification={closeNotification} 
-      />
-
       <main className="max-w-6xl mx-auto px-6 py-16">
         <HeroSection />
         <FeaturesSection />
         <FAQSection activeFAQ={activeFAQ} toggleFAQ={toggleFAQ} />
       </main>
 
-      <EmergencyOverlay 
-        isActive={isEmergencyActive} 
-        onDeactivate={() => setIsEmergencyActive(false)} 
+      <EmergencyOverlay
+        isActive={isEmergencyActive}
+        onDeactivate={() => setIsEmergencyActive(false)}
       />
-
-   
 
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     </div>

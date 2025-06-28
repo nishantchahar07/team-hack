@@ -19,9 +19,9 @@ const HeroSection: React.FC = () => {
           <i className="fas fa-calendar-plus"></i>
           Book Appointment
         </Link>
-        <Link href={'/ai-assistant'} className="glass-effect text-slate-800 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 justify-center">
+        <Link href={'/nurses'} className="glass-effect text-slate-800 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 justify-center">
           <i className="fas fa-robot"></i>
-          Talk to AI Assistant
+          Find Nurses
         </Link>
       </div>
     </section>
