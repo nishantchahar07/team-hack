@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import logRoutes from './routes/log.routes';
 import nurseRoutes from './routes/nurse.routes';
+import bookingRoutes from './routes/booking.route';
 
 dotenv.config();
 const app: Application = express();
@@ -21,5 +22,6 @@ app.get('/', (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/logs", logRoutes);
 app.use("/api/v1/nurses", nurseRoutes);
+app.use("/api/v1/bookings", bookingRoutes);
 
 export default app;

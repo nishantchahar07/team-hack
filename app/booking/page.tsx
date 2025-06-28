@@ -112,7 +112,7 @@ const AppointmentBooking: React.FC = () => {
         const R = 6371; // Radius of the Earth in kilometers
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = 
+        const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLng / 2) * Math.sin(dLng / 2);
@@ -239,7 +239,7 @@ const AppointmentBooking: React.FC = () => {
             }
 
             const result = await response.json();
-            
+
             const nursePredictions: NursePrediction[] = result.top_nurses;
 
             if (nursePredictions && nursePredictions.length > 0) {
@@ -489,15 +489,14 @@ const AppointmentBooking: React.FC = () => {
                                 {/* Rank Badge */}
                                 <div className="relative">
                                     <div className="absolute top-4 left-4 z-10">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                                            index === 0 ? 'bg-yellow-500' : 
-                                            index === 1 ? 'bg-gray-400' : 
-                                            index === 2 ? 'bg-amber-600' : 'bg-blue-500'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-yellow-500' :
+                                                index === 1 ? 'bg-gray-400' :
+                                                    index === 2 ? 'bg-amber-600' : 'bg-blue-500'
+                                            }`}>
                                             {index + 1}
                                         </div>
                                     </div>
-                                    
+
                                     {/* Header Section */}
                                     <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 p-6 text-white">
                                         <div className="flex items-center space-x-3 mt-6">
@@ -509,17 +508,15 @@ const AppointmentBooking: React.FC = () => {
                                                 <p className="text-blue-100">{nurse.specialization}</p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Availability */}
                                         <div className="mt-4 flex justify-end">
-                                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                                nurse.available
+                                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${nurse.available
                                                     ? 'bg-green-500/20 text-green-100 border border-green-400/30'
                                                     : 'bg-red-500/20 text-red-100 border border-red-400/30'
-                                            }`}>
-                                                <div className={`w-2 h-2 rounded-full mr-2 ${
-                                                    nurse.available ? 'bg-green-400' : 'bg-red-400'
-                                                }`}></div>
+                                                }`}>
+                                                <div className={`w-2 h-2 rounded-full mr-2 ${nurse.available ? 'bg-green-400' : 'bg-red-400'
+                                                    }`}></div>
                                                 {nurse.available ? 'Available' : 'Unavailable'}
                                             </div>
                                         </div>
@@ -558,7 +555,7 @@ const AppointmentBooking: React.FC = () => {
                                             <span className="text-sm font-bold text-gray-800">{(nurse.probability * 100).toFixed(1)}%</span>
                                         </div>
                                         <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div 
+                                            <div
                                                 className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
                                                 style={{ width: `${nurse.probability * 100}%` }}
                                             ></div>
@@ -583,12 +580,41 @@ const AppointmentBooking: React.FC = () => {
 
                                     {/* Action Button */}
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
-                                            setSelectedNurse(nurse);
-                                            toast.success(`Selected ${nurse.name} as your nurse!`);
+                                            try {
+                                                const button = e.currentTarget;
+                                                button.disabled = true;
+                                                button.innerHTML = 'Processing...';
+
+                                                const data = JSON.stringify({
+                                                    nurseId: nurse.id,
+                                                    diseases: formData.disease,
+                                                    scheduledDate: formData.date,
+                                                });
+                                                console.log(data);
+
+                                                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/book`, {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                                    },
+                                                    body: data,
+                                                });
+
+                                                if (!response.ok) {
+                                                    throw new Error('Failed to book appointment');
+                                                }
+
+                                                toast.success(`Successfully booked appointment with ${nurse.name}!`);
+                                                window.location.href = '/history';
+                                            } catch (error) {
+                                                toast.error('Failed to book appointment. Please try again.');
+                                                console.error('Booking error:', error);
+                                            }
                                         }}
-                                        className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                                        className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Select This Nurse
                                     </button>
@@ -653,10 +679,10 @@ const AppointmentBooking: React.FC = () => {
                                 return (
                                     <div key={step.id} className="flex items-center">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step.active
-                                                ? 'bg-blue-600 text-white'
-                                                : currentStep > step.id
-                                                    ? 'bg-green-500 text-white'
-                                                    : 'bg-gray-200 text-gray-400'
+                                            ? 'bg-blue-600 text-white'
+                                            : currentStep > step.id
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-gray-200 text-gray-400'
                                             }`}>
                                             <Icon size={20} />
                                         </div>

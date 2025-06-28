@@ -37,7 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
         try {
             const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/profile`,
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/profile`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
