@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React from 'react';
+import Image from "next/image";
 
 interface HeaderProps {
   isEmergencyActive: boolean;
@@ -13,8 +14,13 @@ const Header: React.FC<HeaderProps> = ({ isEmergencyActive, toggleEmergency }) =
     <header className="glass-effect sticky top-0 z-50 shadow-lg">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl flex items-center justify-center text-white text-2xl">
-            <i className="fas fa-heartbeat"></i>
+          <div>
+               <Image
+            src="/logo.png" 
+            alt="Website Logo"
+            width={40}
+            height={40}
+          />
           </div>
           <div>
             <h1 className="text-2xl font-inter font-bold bg-gradient-to-r from-green-500 to-blue-600 bg-clip-text text-transparent">
