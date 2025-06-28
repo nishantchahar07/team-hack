@@ -1,28 +1,60 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
+import {
+  User,
+  Calendar,
+  Clock,
+  Phone,
+  Mail,
+  Award,
+  HeartHandshake,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Timer
+} from 'lucide-react';
 
-interface HistoryLog {
+interface BookingData {
   id: string;
   userId: string;
+  nurseId: string;
+  disease: string;
+  scheduledDate: string;
+  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  reason?: string;
+  nurseFeedback?: string;
   createdAt: string;
   updatedAt: string;
-  data?: any;
+  nurse: {
+    id: string;
+    name: string;
+    specialization: string;
+    experienceYears: number;
+    language: string;
+    gender: string;
+    phone: string;
+    email: string;
+    available: boolean;
+    createdAt: string;
+    updatedAt: string;
+    locationId: string;
+  };
 }
 
-const HistoryDashboard: React.FC = () => {
-  const [logs, setLogs] = useState<HistoryLog[]>([]);
+const BookingHistory: React.FC = () => {
+  const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchHistory = async () => {
+  const fetchBookings = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const token = localStorage.getItem('token'); 
-      
-      const response = await fetch(`http:localhost:5000/api/v1/logs/get`, {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/get-bookings`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -33,11 +65,12 @@ const HistoryDashboard: React.FC = () => {
       const result = await response.json();
 
       if (result.success) {
-        setLogs(result.data);
+        setBookings(result.data);
       } else {
-        setError(result.error || 'Failed to fetch history');
+        setError(result.message || 'Failed to fetch booking history');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
       setError('Network error occurred');
     } finally {
       setLoading(false);
@@ -45,7 +78,7 @@ const HistoryDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHistory();
+    fetchBookings();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -58,16 +91,45 @@ const HistoryDashboard: React.FC = () => {
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'CONFIRMED':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <Timer className="w-4 h-4" />;
+      case 'CONFIRMED':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'COMPLETED':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'CANCELLED':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <Timer className="w-4 h-4" />;
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
-    
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Medical History</h1>
-          <p className="text-gray-600 mt-1">Your training data records</p>
+          <h1 className="text-3xl font-bold text-gray-800">Booking History</h1>
+          <p className="text-gray-600 mt-1">Your appointment records</p>
         </div>
-        <button 
-          onClick={fetchHistory}
+        <button
+          onClick={fetchBookings}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50"
         >
@@ -82,7 +144,7 @@ const HistoryDashboard: React.FC = () => {
       {loading && (
         <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your history...</p>
+          <p className="text-gray-600">Loading your bookings...</p>
         </div>
       )}
 
@@ -102,15 +164,15 @@ const HistoryDashboard: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {!loading && !error && logs.length === 0 && (
+      {!loading && !error && bookings.length === 0 && (
         <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
           <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">No History Found</h3>
-          <p className="text-gray-600 mb-4">You don't have any medical training data yet.</p>
-          <button 
-            onClick={fetchHistory}
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No Bookings Found</h3>
+          <p className="text-gray-600 mb-4">You haven&apos;t made any appointments yet.</p>
+          <button
+            onClick={fetchBookings}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
             Refresh to check again
@@ -118,77 +180,127 @@ const HistoryDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* History List */}
-      {!loading && !error && logs.length > 0 && (
+      {/* Booking History Grid */}
+      {!loading && !error && bookings.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <p className="text-gray-600">
-              Showing {logs.length} record{logs.length !== 1 ? 's' : ''}
+              Showing {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
             </p>
           </div>
-          
-          {logs.map((log, index) => (
-            <div key={log.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-blue-100 text-blue-800 rounded-lg px-3 py-1 text-sm font-medium">
-                      #{index + 1}
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {bookings.map((booking) => (
+              <div
+                key={booking.id}
+                className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+              >
+                {/* Header Section */}
+                <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold">{booking.nurse.name}</h3>
+                        <p className="text-blue-100">{booking.nurse.specialization}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-1">
-                        Record ID: {log.id.slice(0, 8)}...
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Created: {formatDate(log.createdAt)}
-                      </p>
-                      {log.updatedAt !== log.createdAt && (
-                        <p className="text-sm text-gray-500">
-                          Updated: {formatDate(log.updatedAt)}
-                        </p>
-                      )}
+
+                    {/* Status Badge */}
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(booking.status)}`}>
+                      {getStatusIcon(booking.status)}
+                      <span className="ml-1">{booking.status}</span>
                     </div>
                   </div>
-                  
-                  <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
+
+                  {/* Disease/Condition */}
+                  <div className="mt-4">
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <HeartHandshake className="w-4 h-4" />
+                        <span className="text-sm">Condition:</span>
+                        <span className="font-medium capitalize">{booking.disease}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Data Preview */}
-                {log.data && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Data Preview:</h4>
-                    <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                      <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-                        {typeof log.data === 'string' 
-                          ? log.data.slice(0, 200) 
-                          : JSON.stringify(log.data, null, 2).slice(0, 200)
-                        }
-                        {(typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 2)).length > 200 && '...'}
-                      </pre>
+                {/* Content */}
+                <div className="p-6">
+                  {/* Appointment Details */}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                      <span className="text-sm">Scheduled: {formatDate(booking.scheduledDate)}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="w-4 h-4 mr-2 text-green-500" />
+                      <span className="text-sm">Booked: {formatDate(booking.createdAt)}</span>
                     </div>
                   </div>
-                )}
 
-                {/* Actions */}
-                <div className="mt-4 flex items-center justify-end space-x-3">
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
-                    View Details
-                  </button>
-                  <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-                    Export
-                  </button>
+                  {/* Nurse Stats */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-xl">
+                      <div className="text-lg font-bold text-blue-800">{booking.nurse.experienceYears}y</div>
+                      <div className="text-xs text-blue-600">Experience</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-xl">
+                      <div className="text-lg font-bold text-purple-800 capitalize">{booking.nurse.gender.toLowerCase()}</div>
+                      <div className="text-xs text-purple-600">Gender</div>
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-2 text-sm mb-4">
+                    <div className="flex items-center text-gray-600">
+                      <Phone className="w-4 h-4 mr-2" />
+                      {booking.nurse.phone}
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Mail className="w-4 h-4 mr-2" />
+                      {booking.nurse.email}
+                    </div>
+                  </div>
+
+                  {/* Feedback Section */}
+                  {booking.nurseFeedback && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Nurse Feedback:</h4>
+                      <p className="text-sm text-gray-600">{booking.nurseFeedback}</p>
+                    </div>
+                  )}
+
+                  {/* Reason if cancelled */}
+                  {booking.reason && booking.status === 'CANCELLED' && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-red-700 mb-2">Cancellation Reason:</h4>
+                      <p className="text-sm text-red-600">{booking.reason}</p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
+                      View Details
+                    </button>
+                    {booking.status === 'COMPLETED' && (
+                      <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
+                        <Award className="w-4 h-4 inline mr-1" />
+                        Rate Visit
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default HistoryDashboard;
+export default BookingHistory;

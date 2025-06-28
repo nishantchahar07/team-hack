@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
-import HistoryDashboard from './History';
+import React from 'react';
 
 interface FeatureCardProps {
   icon: string;
@@ -12,10 +11,8 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, gradientFrom, gradientTo }) => {
-  const [show,setShow]=useState(false)
-  if(show)return <HistoryDashboard/>
   return (
-    <div className="glass-effect rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300" onClick={()=>window.location.href="/history"}>
+    <div className="glass-effect rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
       <div className={`w-16 h-16 bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-2xl flex items-center justify-center text-white text-3xl mb-6`}>
         <i className={icon}></i>
       </div>
@@ -32,21 +29,24 @@ const FeaturesSection: React.FC = () => {
       title: "Smart Care Plans",
       description: "AI-generated personalized care plans that adapt to your health conditions and needs",
       gradientFrom: "from-blue-600",
-      gradientTo: "to-blue-400"
+      gradientTo: "to-blue-400",
+      link: "/dashboard"
     },
     {
       icon: "fas fa-map-marker-alt",
       title: "Live Nurse Tracking",
-      description: "Real-time GPS tracking of your assigned nurse with accurate arrival predictions",
+      description: "Track your assigned nurse in real-time during home visits",
       gradientFrom: "from-green-500",
-      gradientTo: "to-green-400"
+      gradientTo: "to-green-400",
+      link: "/live-nurse-tracking"
     },
     {
       icon: "fas fa-shield-alt",
-      title: "Medical History",
-      description: "real time medical record of the patient ",
+      title: "History",
+      description: "View your past appointments and their statuses",
       gradientFrom: "from-red-500",
-      gradientTo: "to-red-400"
+      gradientTo: "to-red-400",
+      link: "/history"
     }
   ];
 

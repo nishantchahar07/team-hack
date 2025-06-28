@@ -2,14 +2,13 @@ import Router from 'express';
 import { AuthenticatedRequest, authenticateToken } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prisma } from '../lib/prisma';
-import ModelTrainingData from '@prisma/client';
 
 const router = Router();
 
 router.post('/create', authenticateToken, asyncHandler(async (req, res) => {
     try {
         const userId = (req as AuthenticatedRequest).user?.id;
-        const { nurseId, disease, durationMonths, symptoms, painLevel, priorDiagnosis, comorbidity, preferredLanguage }: ModelTrainingData = req.body;
+        const { nurseId, disease, durationMonths, symptoms, painLevel, priorDiagnosis, comorbidity, preferredLanguage } = req.body;
 
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });

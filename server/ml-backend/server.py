@@ -19,8 +19,16 @@ from phi.tools.duckduckgo import DuckDuckGo
 import asyncio
 load_dotenv()
 
+
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+CORS(app, origins=['http://localhost:3000'])
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+ALLOWED_EXTENSIONS = {'pdf'}
+SESSION_TIMEOUT_MINUTES = 30
+
+session_data = {}
 
 nurse_map = {
     1: "3f8a5c12-8f3e-44a1-bfdc-347c0d0c102d",
@@ -125,17 +133,6 @@ def chat():
             "status": 500,
             "message": "Error Occurred"
         }
-
-
-app = Flask(__name__)
-CORS(app, origins=['http://localhost:3000'])
-app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-ALLOWED_EXTENSIONS = {'pdf'}
-SESSION_TIMEOUT_MINUTES = 30
-
-session_data = {}
 
 assistant_agent = Agent(
     model=Gemini(id="gemini-1.5-flash"),
