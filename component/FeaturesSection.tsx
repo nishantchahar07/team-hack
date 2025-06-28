@@ -35,14 +35,6 @@ const FeaturesSection: React.FC = () => {
       link: "/dashboard"
     },
     {
-      icon: "fas fa-map-marker-alt",
-      title: "Live Nurse Tracking",
-      description: "Track your assigned nurse in real-time during home visits",
-      gradientFrom: "from-green-500",
-      gradientTo: "to-green-400",
-      link: "/live-nurse-tracking"
-    },
-    {
       icon: "fas fa-shield-alt",
       title: "History",
       description: "View your past appointments and their statuses",
@@ -53,7 +45,7 @@ const FeaturesSection: React.FC = () => {
   ];
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+    <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
       {features.map((feature, index) => (
         <FeatureCard
           key={index}
