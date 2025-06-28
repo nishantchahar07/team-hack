@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { FaRobot } from "react-icons/fa";
 interface ChatbotIconProps {
     onClick: () => void;
 }
