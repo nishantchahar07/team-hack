@@ -8,20 +8,24 @@ const router = Router();
 router.post('/book', authenticateToken, asyncHandler(async (req, res) => {
     try {
         const userId = (req as AuthenticatedRequest).user.id;
-        const { nurseId, disease, scheduledDate } = req.body;
-
-        if (!nurseId || !disease || !scheduledDate) {
+        const { nurseId, diseases, scheduledDate } = req.body;
+        console.log('Booking request received:', { userId, nurseId, diseases, scheduledDate });
+        if (!nurseId || !diseases || !scheduledDate) {
             return res.status(400).json({
                 success: false,
-                message: "nurseId, disease, and scheduledDate are required"
+                message: "nurseId, diseases, and scheduledDate are required"
             });
         }
 
         await prisma.booking.create({
             data: {
-                userId,
-                nurseId,
-                disease,
+                user : {
+                    connect: { id: userId },
+                },
+                nurse : {
+                    connect: { id: nurseId },
+                },
+                disease: diseases || '',
                 scheduledDate: new Date(scheduledDate),
             },
         });
