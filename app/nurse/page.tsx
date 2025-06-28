@@ -66,7 +66,7 @@ const NurseRouteOptimization: React.FC = () => {
 
       <div className="container">
         <div className="header">
-          <h1>🏥 Nurse Route Optimization</h1>
+          <h1> Nurse Route Optimization</h1>
           <p>Intelligent healthcare delivery system with real-time tracking</p>
         </div>
 

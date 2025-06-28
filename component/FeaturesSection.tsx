@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
+import HistoryDashboard from './History';
 
 interface FeatureCardProps {
   icon: string;
@@ -11,8 +12,10 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, gradientFrom, gradientTo }) => {
+  const [show,setShow]=useState(false)
+  if(show)return <HistoryDashboard/>
   return (
-    <div className="glass-effect rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+    <div className="glass-effect rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300" onClick={()=>window.location.href="/history"}>
       <div className={`w-16 h-16 bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-2xl flex items-center justify-center text-white text-3xl mb-6`}>
         <i className={icon}></i>
       </div>
@@ -40,8 +43,8 @@ const FeaturesSection: React.FC = () => {
     },
     {
       icon: "fas fa-shield-alt",
-      title: "24/7 Emergency",
-      description: "Instant emergency response with nearest nurse and ambulance dispatch",
+      title: "Medical History",
+      description: "real time medical record of the patient ",
       gradientFrom: "from-red-500",
       gradientTo: "to-red-400"
     }
