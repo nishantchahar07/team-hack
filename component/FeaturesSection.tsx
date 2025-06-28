@@ -27,17 +27,17 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, gra
 const FeaturesSection: React.FC = () => {
   const features = [
     {
-      icon: "fas fa-calendar-alt",
-      title: "Smart Care Plans",
-      description: "AI-generated personalized care plans that adapt to your health conditions and needs",
+      icon: "fas fa-chart-line",
+      title: "Medical Dashboard",
+      description: "View and analyze your medical reports with AI-powered insights and health tracking",
       gradientFrom: "from-blue-600",
       gradientTo: "to-blue-400",
       link: "/dashboard"
     },
     {
-      icon: "fas fa-shield-alt",
-      title: "History",
-      description: "View your past appointments and their statuses",
+      icon: "fas fa-history",
+      title: "Appointment History",
+      description: "View your past appointments and their statuses with detailed nurse information",
       gradientFrom: "from-red-500",
       gradientTo: "to-red-400",
       link: "/history"

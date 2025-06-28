@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import logRoutes from './routes/log.routes';
 import nurseRoutes from './routes/nurse.routes';
 import bookingRoutes from './routes/booking.route';
+import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 const app: Application = express();
@@ -23,5 +24,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/logs", logRoutes);
 app.use("/api/v1/nurses", nurseRoutes);
 app.use("/api/v1/bookings", bookingRoutes);
+app.use("/api/v1/report", reportRoutes);
+
 
 export default app;

@@ -48,3 +48,62 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
+
+export function parseExtractedData(extractedText: string) {
+    const lines = extractedText.split('\n').map(line => line.trim()).filter(line => line);
+
+    const result = {
+        patient: {
+            name: '',
+            age: null as number | null,
+            gender: ''
+        },
+        tests: [] as any[],
+        summary: ''
+    };
+
+    let currentTest: any = {};
+
+    for (const line of lines) {
+        if (line.startsWith('- Patient Name:')) {
+            result.patient.name = line.replace('- Patient Name:', '').trim();
+        } else if (line.startsWith('- Age:')) {
+            const ageStr = line.replace('- Age:', '').trim();
+            result.patient.age = parseInt(ageStr) || null;
+        } else if (line.startsWith('- Gender:')) {
+            result.patient.gender = line.replace('- Gender:', '').trim();
+        }
+        else if (line.startsWith('- Test:')) {
+            if (currentTest.name) {
+                result.tests.push({ ...currentTest });
+            }
+            currentTest = {
+                name: line.replace('- Test:', '').trim(),
+                value: null,
+                referenceRange: '',
+                interpretation: '',
+                riskCategory: ''
+            };
+        } else if (line.startsWith('  - Value:')) {
+            const value = line.replace('  - Value:', '').trim();
+            currentTest.value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+        } else if (line.startsWith('  - Reference Range:')) {
+            currentTest.referenceRange = line.replace('  - Reference Range:', '').trim();
+        } else if (line.startsWith('  - Interpretation:')) {
+            currentTest.interpretation = line.replace('  - Interpretation:', '').trim();
+        } else if (line.startsWith('  - Risk Category:')) {
+            currentTest.riskCategory = line.replace('  - Risk Category:', '').trim();
+        }
+        else if (line.startsWith('**Summary:**')) {
+            result.summary = line.replace('**Summary:**', '').trim();
+        } else if (result.summary && line && !line.startsWith('-') && !line.startsWith('**')) {
+            result.summary += ' ' + line;
+        }
+    }
+
+    if (currentTest.name) {
+        result.tests.push(currentTest);
+    }
+
+    return result;
+}

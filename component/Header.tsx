@@ -11,7 +11,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = () => {
   return (
-    <header className="glass-effect sticky top-0 z-50 shadow-lg">
+    <header className="glass-effect top-0 z-100 shadow-lg">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
 
         {/* Left Section: Logo + Text */}

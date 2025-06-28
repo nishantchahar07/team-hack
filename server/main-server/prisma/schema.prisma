@@ -80,6 +80,12 @@ model HealthReport {
   booking   Booking  @relation(fields: [bookingId], references: [id])
   createdAt DateTime @default(now())
 }
+model Report{
+  id            String   @id @default(uuid())
+  structuredData Json
+  createdAt     DateTime @default(now())
+  
+}
 
 model PatientProfile {
   id                 String   @id @default(uuid())

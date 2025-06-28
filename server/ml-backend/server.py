@@ -8,6 +8,7 @@ import pdfplumber
 import uuid
 import io
 import re
+import requests
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
@@ -164,20 +165,22 @@ general_agent = Agent(
     markdown=True
 )
 
-# symptoms_agent = Agent(
-#     model=Gemini(id="gemini-1.5-flash"),
-#     tools=[DuckDuckGo()],
-#     description="Medical assistant for symptom analysis",
-#     instructions=[
-#         "Analyze symptoms educationally",
-#         "Suggest possible causes without diagnosing",
-#         "Recommend when to seek immediate care",
-#         "Provide general self-care tips",
-#         "Always emphasize professional evaluation",
-#         "Include medical disclaimers"
-#     ],
-#     markdown=True
-# )
+# Data extraction agent for extracting structured medical information
+data_extraction_agent = Agent(
+    model=Gemini(id="gemini-1.5-flash"),
+    description="Medical data extraction agent",
+    instructions=[
+        "Extract only medical information from lab reports",
+        "Follow the specified output format exactly",
+        "Include all test values, reference ranges, and interpretations",
+        "Provide clear categorization of results",
+        "Be precise and structured in output"
+    ],
+    markdown=False
+)
+
+# Configuration for external backend
+EXTERNAL_BACKEND_URL = os.getenv('EXTERNAL_BACKEND_URL', 'http://localhost:3001/api/v1/report/create')  # Default URL
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -219,62 +222,6 @@ def detect_query_type(query):
     if any(keyword in query_lower for keyword in upload_keywords):
         return 'upload_request'
     
-    # symptom_count = sum(1 for keyword in SYMPTOM_KEYWORDS if keyword in query_lower)
-    
-    # symptom_patterns = [
-    #     r'i have|i am having|i feel|i am feeling|experiencing',
-    #     r'my \w+ (hurt|pain|ache|sore)',
-    #     r'(pain|ache|hurt) in my',
-    #     r'i have been (sick|unwell|feeling)',
-    #     r'symptoms include|symptoms are',
-    #     r'for \d+ days?|for \d+ weeks?|since yesterday|since last week'
-    # ]
-    
-    # pattern_matches = sum(1 for pattern in symptom_patterns if re.search(pattern, query_lower))
-    
-    # if symptom_count >= 2 or pattern_matches >= 1:
-    #     return 'symptoms'
-    
-    return 'general'
-
-# def analyze_symptoms_for_specialization(symptoms_text):
-#     """Analyze symptoms to determine appropriate medical specialization"""
-#     symptoms_lower = symptoms_text.lower()
-    
-#     specialization_scores = {}
-    
-#     for symptom, specialization in SYMPTOM_SPECIALIZATION_MAP.items():
-#         if symptom in symptoms_lower:
-#             if specialization not in specialization_scores:
-#                 specialization_scores[specialization] = 0
-#             specialization_scores[specialization] += 1
-#     if specialization_scores:
-#         return max(specialization_scores, key=specialization_scores.get)
-#     else:
-#         return 'general'
-
-# def get_doctors_by_specialization(specialization):
-#     data = asyncio.run(fetch_doctors_with_user())
-#     ans = []
-
-
-#     for doc in data:
-#         specializations = doc.get('Specialization', [])
-#         specializations_lower = [spec.lower() for spec in specializations]
-
-#         if specialization.lower() in specializations_lower:
-#             ans.append({
-#                 "Doctor ID": doc["id"],
-#                 "Doctor Name": doc["name"],
-#                 "Rating": doc["rating"]
-#             })
-
-#     return ans
-
-
-
-
-
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
     """Handle PDF upload"""
@@ -365,10 +312,12 @@ User's question: {query}
 
 Please analyze this lab report and answer the user's question. Remember to:
 - Explain medical terms in simple language
-- Mention normal ranges when discussing lab values
+- Mention normal ranges for lab values
 - Be reassuring and educational
 - Always recommend consulting with a healthcare provider
-- Never provide specific medical diagnoses or treatment recommendations"""
+- Never provide specific medical diagnoses or treatment recommendations
+- Use bullet points and clear formatting
+- Provide structured data extraction when applicable"""
             
             try:
                 response = ""
@@ -445,6 +394,50 @@ def ask_question():
         session_info['timestamp'] = datetime.now()
         
         context = session_info['text']
+        
+        # Extract structured medical data using Gemini
+        extraction_prompt = f"""
+You are a medical assistant. From the following raw test report text, extract and clean up only the relevant medical information for the patient, including test names, values, reference ranges, whether they are within or outside normal limits, and any clinical interpretation or risk categories.
+
+Raw Report:
+\"\"\"
+{context}
+\"\"\"
+
+Output Format:
+- Patient Name:
+- Age:
+- Gender:
+
+- Test: [Test Name]
+  - Value: [X]
+  - Reference Range: [X-Y]
+  - Interpretation: [Low/Normal/High]
+  - Risk Category: [e.g., Optimal/Borderline/High Risk]
+
+Repeat for each test and include a short summary at the end with any notable observations (e.g., high triglycerides, low HDL, etc.).
+"""
+        
+        try:
+            # Extract structured data
+            extracted_data = ""
+            for chunk in data_extraction_agent.run(extraction_prompt, stream=True):
+                extracted_data += chunk.content
+            
+            if not extracted_data.strip():
+                extracted_data = "Unable to extract structured data from the report."
+        
+        except Exception as e:
+            print(f"Data extraction error: {e}")
+            extracted_data = "Error occurred during data extraction."
+        
+        # Send extracted data to external backend
+        success, external_response = send_to_external_backend(extracted_data, session_id, session_info['filename'])
+        
+        if not success:
+            print(f"Failed to send to external backend: {external_response}")
+        
+        # Answer the user's question
         full_prompt = f"""Here is a medical lab report:
 
 {context}
@@ -456,7 +449,8 @@ Please analyze this lab report and answer the user's question. Remember to:
 - Mention normal ranges when discussing lab values
 - Be reassuring and educational
 - Always recommend consulting with a healthcare provider
-- Never provide specific medical diagnoses or treatment recommendations"""
+- Never provide specific medical diagnoses or treatment recommendations
+- Use bullet points and clear formatting"""
         
         try:
             response = ""
@@ -472,7 +466,10 @@ Please analyze this lab report and answer the user's question. Remember to:
         
         return jsonify({
             "response": response,
-            "filename": session_info['filename']
+            "filename": session_info['filename'],
+            "extracted_data": extracted_data,
+            "external_backend_status": "success" if success else "failed",
+            "external_backend_response": external_response if success else str(external_response)
         })
     
     except Exception as e:
@@ -497,10 +494,8 @@ Please provide helpful, educational information about this health topic. Remembe
 - Explain medical terms and concepts in simple language
 - Provide accurate, general health information
 - Be reassuring and educational
-- Always emphasize the importance of consulting healthcare professionals
-- Never provide specific diagnoses, prescriptions, or critical medical decisions
-- Stay within the bounds of general health education
-- Use bullet points and clear formatting for better readability"""
+- Always recommend professional consultation
+        """
         
         try:
             response = ""
@@ -515,94 +510,109 @@ Please provide helpful, educational information about this health topic. Remembe
             response = "I'm sorry, but I encountered an error while processing your question. Please try again."
         
         return jsonify({
-            "response": response
+            "response": response,
+            "query_type": "general"
         })
     
     except Exception as e:
         return jsonify({"error": f"Failed to process question: {str(e)}"}), 500
 
-# @app.route('/symptoms', methods=['POST'])
-# def analyze_symptoms():
-#     """Handle symptoms analysis and doctor recommendations"""
-#     try:
-#         data = request.get_json()
-#         if not data:
-#             return jsonify({"error": "No JSON data provided"}), 400
+@app.route('/extract_data', methods=['POST'])
+def extract_data():
+    """Extract structured data from uploaded report"""
+    try:
+        cleanup_expired_sessions()
         
-#         symptoms = data.get("symptoms", "").strip()
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
         
-#         if not symptoms:
-#             return jsonify({"error": "No symptoms provided"}), 400
+        session_id = data.get("session_id", "").strip()
         
-#         # Analyze symptoms to determine specialization
-#         specialization = analyze_symptoms_for_specialization(symptoms)
+        if not session_id:
+            return jsonify({"error": "No session ID provided"}), 400
         
-#         # Get doctors for the specialization
-#         recommended_doctors = get_doctors_by_specialization(specialization)
+        if session_id not in session_data:
+            return jsonify({"error": "Session not found or expired. Please upload your PDF again."}), 400
         
-#         # Prepare prompt for symptoms analysis
-#         full_prompt = f"""User is experiencing these symptoms: {symptoms}
+        session_info = session_data[session_id]
+        session_info['timestamp'] = datetime.now()
+        
+        context = session_info['text']
+        
+        extraction_prompt = f"""
+You are a medical assistant. From the following raw test report text, extract and clean up only the relevant medical information for the patient, including test names, values, reference ranges, whether they are within or outside normal limits, and any clinical interpretation or risk categories.
 
-# Please provide educational information about these symptoms. Remember to:
-# - Explain what these symptoms might indicate in general terms
-# - Mention possible common causes (without diagnosing)
-# - Suggest when to seek immediate medical attention (red flags)
-# - Provide general self-care tips where appropriate
-# - Always emphasize that symptoms require professional medical evaluation
-# - Never provide specific diagnoses or treatment recommendations
-# - Be reassuring while being informative
-# - Use bullet points and clear formatting for better readability
-# - Include disclaimer about not replacing professional medical advice"""
+Raw Report:
+\"\"\"
+{context}
+\"\"\"
 
-#         try:
-#             response = ""
-#             for chunk in symptoms_agent.run(full_prompt, stream=True):
-#                 response += chunk.content
+Output Format:
+- Patient Name:
+- Age:
+- Gender:
+
+- Test: [Test Name]
+  - Value: [X]
+  - Reference Range: [X-Y]
+  - Interpretation: [Low/Normal/High]
+  - Risk Category: [e.g., Optimal/Borderline/High Risk]
+
+Repeat for each test and include a short summary at the end with any notable observations (e.g., high triglycerides, low HDL, etc.).
+"""
+        
+        try:
+            extracted_data = ""
+            for chunk in data_extraction_agent.run(extraction_prompt, stream=True):
+                extracted_data += chunk.content
             
-#             if not response.strip():
-#                 response = "I apologize, but I couldn't generate a response. Please try describing your symptoms differently."
+            if not extracted_data.strip():
+                extracted_data = "Unable to extract structured data from the report."
         
-#         except Exception as e:
-#             print(f"Symptoms agent error: {e}")
-#             response = "I'm sorry, but I encountered an error while analyzing your symptoms. Please try again."
+        except Exception as e:
+            print(f"Data extraction error: {e}")
+            extracted_data = "Error occurred during data extraction."
         
-#         return jsonify({
-#             "response": response,
-#             "symptoms": symptoms,
-#             "specialization": specialization,
-#             "recommended_doctors": recommended_doctors[:1]  # Return top 3 doctors
-#         })
+        # Send extracted data to external backend
+        success, external_response = send_to_external_backend(extracted_data, session_id, session_info['filename'])
+        
+        return jsonify({
+            "extracted_data": extracted_data,
+            "filename": session_info['filename'],
+            "external_backend_status": "success" if success else "failed",
+            "external_backend_response": external_response if success else str(external_response)
+        })
     
-#     except Exception as e:
-#         return jsonify({"error": f"Failed to analyze symptoms: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to extract data: {str(e)}"}), 500
 
-@app.route('/session/<session_id>')
-def get_session_info(session_id):
-    """Get session information"""
-    cleanup_expired_sessions()
+def send_to_external_backend(extracted_data, session_id, filename):
+    """Send extracted medical data to external backend"""
+    try:
+        payload = {
+            "session_id": session_id,
+            "filename": filename,
+            "extracted_data": extracted_data,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        print(f"Sending data to external backend: {payload['extracted_data']}")
+
+        response = requests.post(
+            f"{EXTERNAL_BACKEND_URL}",
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            return False, f"External backend returned status code: {response.status_code}"
     
-    if session_id not in session_data:
-        return jsonify({"error": "Session not found"}), 404
-    
-    session_info = session_data[session_id]
-    return jsonify({
-        "filename": session_info['filename'],
-        "text_length": len(session_info['text']),
-        "upload_time": session_info['timestamp'].isoformat()
-    })
-
-
-@app.errorhandler(413)
-def too_large(e):
-    return jsonify({"error": "File too large. Maximum size is 16MB."}), 413
-
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({"error": "Endpoint not found"}), 404
-
-@app.errorhandler(500)
-def internal_error(e):
-    return jsonify({"error": "Internal server error"}), 500
+    except requests.exceptions.RequestException as e:
+        return False, f"Error sending to external backend: {str(e)}"
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
